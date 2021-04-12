@@ -6,4 +6,4 @@ out
 *.ipr
 *.iws
 .env
-src/main/kotlin/UselessModules
+/src/main/kotlin/UselessModules/
