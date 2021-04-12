@@ -26,7 +26,7 @@ suspend fun main() {
     val dataBaseUser = dotenv["DATABASE_USER"].toString()
     val dataBasePassword = dotenv["DATABASE_PASSWORD"].toString()
 
-    val bot = telegramBot("1794823321:AAE5dNU7xgz-1jDhTJMrI1ekNUJX1K6VzV4")
+    val bot = telegramBot(botToken)
 
     val scope = CoroutineScope(Dispatchers.Default)
 
