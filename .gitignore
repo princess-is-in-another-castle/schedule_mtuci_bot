@@ -6,5 +6,4 @@ out
 *.ipr
 *.iws
 .env
-.DS_Store
-
+src/main/kotlin/UselessModules
