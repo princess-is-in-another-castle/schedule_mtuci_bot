@@ -1,11 +1,6 @@
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
-import org.apache.poi.ss.usermodel.WorkbookFactory
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import org.apache.poi.ss.util.SheetUtil.getCell
-import org.apache.poi.ss.util.SheetUtil.*
 import Data.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -17,6 +12,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
  *      -либо нечетное занятие 2 ячейки сверху и четное 2 ячейки снизу
  *      -либо этот день объединён в одно постоянное занятие. Здесь способ представления данных может варьироваться.
  *       У нас может быть как объединёная большая ячейка (merged cell), так и расписанное занятие отдельно по 4 ячейкам.
+ *
+ * Одним словом дичь полная и стандарта представления особо нету. Если только на глаз
  */
 
 
@@ -191,10 +188,39 @@ fun isBottomBorderThin(sheet: Sheet, row: Int, col: Int): Boolean {
     return false
 }
 
-/** Эта функция автоматом парсит все группы из расписания. Для в функцию передаётся расписание.
+/** Эта функция автоматом парсит все группы из расписания (вместе с самим расписанием). Для в функцию передаётся расписание.
  *  Дальше она находит первую! ячейку с содержанием "Понедельник" (опытным путём доказано, что если подняться на одну
  *  ячейку вверх от понедельника, то на этой строке будут находиться все названия групп.*/
 fun getGroups(sheet: Sheet) {
+    var (row, col) = findCell(sheet, "Понедельник")
+    row--
+    // начинает перебирать все ячейки по строке до конца
+    for (i in col..sheet.getRow(0).lastCellNum) {
+        var group = getMergedCell(sheet, row, i).toString()
+        // проверяет, есть ли в названии где-либо подряд идущие заглавные буквы, а за ними цифры
+        if (group.matches("""(.*)([А-Я]+\d+)(.*)""".toRegex())) {
+            // удаляет всё, после слэшей. То есть из "  БУП2077  //322" получится "  БУП2077  "
+            group = group.replace(regex = """\\.*""".toRegex(), "")
+            group = group.replace(regex = """\/.*""".toRegex(), "")
+            // удаляет все пробелы в начале. Получается "БУП2077  "
+            group = group.replace(regex = """^\ +""".toRegex(), "")
+            // удаляет все пробелы в конце. Получается "БУП2077"
+            group = group.replace(regex = """\ +$""".toRegex(), "")
+
+            transaction {
+                SchemaUtils.create(Groups)
+                Groups.insertIgnore {
+                    it[groups] = group
+                    println("Группа $group успешно добавлена в базу")
+                }
+            }
+
+            getTimeTable(sheet, group)
+        }
+    }
+}
+
+fun getGroupsTest(sheet: Sheet) {
     var (row, col) = findCell(sheet, "Понедельник")
     row--
     // начинает перебирать все ячейки по строке до конца
@@ -209,6 +235,7 @@ fun getGroups(sheet: Sheet) {
             cell = cell.replace(regex = """^\ +""".toRegex(), "")
             // удаляет все пробелы в конце. Получается "БУП2077"
             cell = cell.replace(regex = """\ +$""".toRegex(), "")
+
 
             transaction {
                 SchemaUtils.create(Groups)
