@@ -30,7 +30,7 @@ suspend fun main() {
 
     val scope = CoroutineScope(Dispatchers.Default)
 
-    val pathFolder = "./src/main/resources/data/ExcelFiles/"
+    val pathFolder = "./src/main/resources/data/Temp/"
 
     Database.connect(dataBaseUrl,
         driver = dataBaseDriver,
@@ -252,6 +252,7 @@ suspend fun main() {
             val day = changeRussianToEnglishDay(
                 waitText().first().text.toUpperCase()
             )
+            println(day)
 
             val group = transaction {
                 addLogger(StdOutSqlLogger)
@@ -260,14 +261,17 @@ suspend fun main() {
                     (Users.id.eq(it.chat.id.chatId.toString()))
                 }.first()[Users.group]
             }
+            println(group)
 
             val checkWeekDay = transaction {
                 addLogger(StdOutSqlLogger)
                 SchemaUtils.create(Lessons)
+                println(Lessons.id.eq(weekType + group + day))
                 Lessons.select {
                     (Lessons.id.eq(weekType + group + day))
                 }.firstOrNull()
             }
+            println(checkWeekDay)
 
             if (checkWeekDay == null) {
                 sendMessage(
@@ -287,7 +291,7 @@ suspend fun main() {
             }
         }
 
-        /** Последние триггеры на картинку и стикер были написаны по фану.
+        /** Последние триггера на картинку и стикер были написаны по фану.
          * У вас же бывало, когда вы боту скидываете случайно что-то. Он на такое отреагирует. */
         onPhoto {
             sendMessage(it.chat.id, "is this for me? " + "\uD83E\uDD7A" + "\uD83D\uDC49" + "\uD83D\uDC48")
@@ -301,3 +305,16 @@ suspend fun main() {
     scope.coroutineContext.job.join()
 }
 
+/** копирует список групп из базы данных и возвращает его.
+ * Вообще костыль, потому что лучше искать по базе данных группу, а не копировать список групп. */
+fun getListOfGroups(): List<String> {
+
+    val groups = mutableListOf<String>()
+    transaction {
+        Groups.selectAll().forEach {
+            groups.add(it[Groups.groups])
+        }
+    }
+
+    return groups.toList()
+}
