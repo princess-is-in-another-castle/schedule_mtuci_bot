@@ -13,9 +13,8 @@ fun putDataInDb(url: String, pathFolder: String) {
     // Список с именами файлов
     val docNames = getDocNames(getHtmlAttributes(url))
     docNames.forEach { docName ->
-        val fileUrl = getFileUrl(url, fileName = docName)
         downloadFile(
-            fileUrl = fileUrl,
+            url = url,
             fileName = docName,
             pathFolder = pathFolder
         )
@@ -69,7 +68,8 @@ fun getDocNames(listOfElements: Elements): List<String> {
 
 
 /** Качает файл в папку*/
-fun downloadFile(fileUrl: String, fileName: String, pathFolder: String) {
+fun downloadFile(url: String, fileName: String, pathFolder: String) {
+    val fileUrl = getFileUrl(url, fileName = fileName)
     val filePath = getPathToFile(pathFolder, fileName)
     FileUtils.copyURLToFile(
         URL(fileUrl),
