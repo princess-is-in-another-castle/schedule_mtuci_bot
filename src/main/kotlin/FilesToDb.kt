@@ -16,10 +16,8 @@ fun main() {
         password = dataBasePassword)
 
     val url = "https://mtuci.ru/time-table/"
-    val pathFolder = "./src/main/resources/data/ExcelFiles/"
+    val pathFolder = "src/main/resources/data/Temp/"
 
-    // скачивает все файлы папку
-    getFiles(url, pathFolder)
-    // читает файлы и записывает нужную информацию в базу данных
-    readFiles(pathFolder)
+    putDataInDb(url, pathFolder)
+
 }
