@@ -35,5 +35,5 @@ DATABASE_PASSWORD = <пароль бд>
 
 ```
 gradlew build 
-java -jar build/libs/schedule_mtuci_bot-1.0-all.jar
+java -jar build/libs/schedule_mtuci_bot-1.2-all.jar
 ```
