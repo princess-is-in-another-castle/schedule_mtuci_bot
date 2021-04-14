@@ -33,7 +33,7 @@ suspend fun main() {
     val dataBaseUser = dotenv["DATABASE_USER"].toString()
     val dataBasePassword = dotenv["DATABASE_PASSWORD"].toString()
 
-    val pathFolder = dotenv["PATH_FILE"].toString()
+    val pathFolder = "src/main/resources/data/Temp"
 
     val url = "https://mtuci.ru/time-table/"
 
