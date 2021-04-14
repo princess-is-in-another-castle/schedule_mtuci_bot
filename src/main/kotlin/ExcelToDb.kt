@@ -220,31 +220,3 @@ fun getGroups(sheet: Sheet) {
     }
 }
 
-fun getGroupsTest(sheet: Sheet) {
-    var (row, col) = findCell(sheet, "Понедельник")
-    row--
-    // начинает перебирать все ячейки по строке до конца
-    for (i in col..sheet.getRow(0).lastCellNum) {
-        var cell = getMergedCell(sheet, row, i).toString()
-        // проверяет, есть ли в названии где-либо подряд идущие заглавные буквы, а за ними цифры
-        if (cell.matches("""(.*)([А-Я]+\d+)(.*)""".toRegex())) {
-            // удаляет всё, после слэшей. То есть из "  БУП2077  //322" получится "  БУП2077  "
-            cell = cell.replace(regex = """\\.*""".toRegex(), "")
-            cell = cell.replace(regex = """\/.*""".toRegex(), "")
-            // удаляет все пробелы в начале. Получается "БУП2077  "
-            cell = cell.replace(regex = """^\ +""".toRegex(), "")
-            // удаляет все пробелы в конце. Получается "БУП2077"
-            cell = cell.replace(regex = """\ +$""".toRegex(), "")
-
-
-            transaction {
-                SchemaUtils.create(Groups)
-                Groups.insertIgnore {
-                    it[groups] = cell
-                    println("Группа $cell успешно добавлена в базу")
-                }
-            }
-
-        }
-    }
-}
