@@ -8,7 +8,6 @@ import dev.inmo.tgbotapi.extensions.api.send.sendMessage
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviour
 import dev.inmo.tgbotapi.extensions.behaviour_builder.expectations.waitText
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.*
-import dev.inmo.tgbotapi.extensions.utils.updates.retrieving.longPolling
 import dev.inmo.tgbotapi.types.ParseMode.HTMLParseMode
 import dev.inmo.tgbotapi.types.buttons.ReplyKeyboardMarkup
 import dev.inmo.tgbotapi.types.buttons.SimpleKeyboardButton
@@ -16,6 +15,14 @@ import dev.inmo.tgbotapi.utils.matrix
 import dev.inmo.tgbotapi.utils.row
 import io.github.cdimascio.dotenv.dotenv
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import java.time.Duration
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.Executors
+import java.time.ZonedDateTime
+import java.time.ZoneId
+
+
+
 
 
 suspend fun main() {
@@ -26,16 +33,23 @@ suspend fun main() {
     val dataBaseUser = dotenv["DATABASE_USER"].toString()
     val dataBasePassword = dotenv["DATABASE_PASSWORD"].toString()
 
+    val pathFolder = dotenv["PATH_FILE"].toString()
+
+    val url = "https://mtuci.ru/time-table/"
+
     val bot = telegramBot(botToken)
 
     val scope = CoroutineScope(Dispatchers.Default)
 
-    val pathFolder = "./src/main/resources/data/Temp/"
+
+
+
 
     Database.connect(dataBaseUrl,
         driver = dataBaseDriver,
         user = dataBaseUser,
         password = dataBasePassword)
+
 
     /** Я не буду описывать, как идёт взаимодействие с ботом, здесь полный мрак, но оно работает и почти без ошибок. */
 
@@ -242,6 +256,7 @@ suspend fun main() {
                 "НЕЧЁТНАЯ", "НЕЧЕТНАЯ" -> "odd"
                 else -> "ошибка"
             }
+            println(weekType)
 
             sendMessage(
                 it.chat.id,
@@ -261,7 +276,6 @@ suspend fun main() {
                     (Users.id.eq(it.chat.id.chatId.toString()))
                 }.first()[Users.group]
             }
-            println(group)
 
             val checkWeekDay = transaction {
                 addLogger(StdOutSqlLogger)
@@ -271,7 +285,6 @@ suspend fun main() {
                     (Lessons.id.eq(weekType + group + day))
                 }.firstOrNull()
             }
-            println(checkWeekDay)
 
             if (checkWeekDay == null) {
                 sendMessage(
@@ -302,7 +315,31 @@ suspend fun main() {
         }
     }
 
+
+    /** Код ниже запускает добавление данных в дб раз в день в какое-то установленное время.
+     * Возможно позже будет переписано.*/
+
+    val now = ZonedDateTime.now(ZoneId.of("Europe/Moscow"))
+    var nextRun = now.withHour(3).withMinute(0).withSecond(0)
+    if (now.compareTo(nextRun) > 0) nextRun = nextRun.plusDays(1)
+
+    val duration: Duration = Duration.between(now, nextRun)
+    val initalDelay: Long = duration.getSeconds()
+
+    val scheduler = Executors.newScheduledThreadPool(1)
+    scheduler.scheduleAtFixedRate(
+        { println("Curent Time is ${ZonedDateTime.now(ZoneId.of("Europe/Moscow"))}")
+            println("Начинаю обновление базы данных")
+            putDataInDb(url, pathFolder)
+            println("Обновление базы данных закончено")
+        },
+        initalDelay,
+        TimeUnit.DAYS.toSeconds(1),
+        TimeUnit.SECONDS
+    )
+
     scope.coroutineContext.job.join()
+
 }
 
 /** копирует список групп из базы данных и возвращает его.
