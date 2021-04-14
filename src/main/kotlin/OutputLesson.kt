@@ -9,11 +9,8 @@ import org.jetbrains.exposed.sql.*
  * Функция возращает готовое расписание*/
 fun getSchedule(chatId: ChatId, plusDays: Int = 0): String {
     // из-за того, что код повторялся этот (а меня это напрягало), я вынес его в отдельную функцию
-    // тип недели
     val weekType = getWeekType()
-    // день недели
     val weekday = getWeekday(plusDays)
-    // группа
     var group = transaction {
         addLogger(StdOutSqlLogger)
         SchemaUtils.create(Users)
