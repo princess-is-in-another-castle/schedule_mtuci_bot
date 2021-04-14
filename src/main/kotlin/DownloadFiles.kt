@@ -1,3 +1,4 @@
+import io.ktor.http.*
 import org.apache.commons.io.FileUtils
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
@@ -6,6 +7,8 @@ import org.jsoup.select.Elements
 import java.io.File
 import java.io.FileInputStream
 import java.net.URL
+import java.net.URLEncoder
+import javax.net.ssl.HttpsURLConnection
 
 /** Получает на вход ссылку на сайт и папку для временных файлов
  *  Каждый файл скачивает, потом отправляет на обработку для добавления данных в дб, после обработки файл удаляется. */
@@ -35,7 +38,8 @@ fun putDataInDb(url: String, pathFolder: String) {
 /** Получает ссылку на сайт и название файла.
  *  Возвращает ссылку на файл на сайте для дальнейшего скачивания. */
 fun getFileUrl(url: String, fileName: String): String {
-    return url + "files/" + fileName
+    // нужно кодировать название файла в UTF-8, иначе он не сможет его скачать и выдаст ошибку
+    return url + "files/" + URLEncoder.encode(fileName,  "UTF-8").replace("+", "%20")
 }
 
 
@@ -69,12 +73,11 @@ fun getDocNames(listOfElements: Elements): List<String> {
 
 /** Качает файл в папку*/
 fun downloadFile(url: String, fileName: String, pathFolder: String) {
-    val fileUrl = getFileUrl(url, fileName = fileName)
+    val fileUrl = getFileUrl(url, fileName)
     val filePath = getPathToFile(pathFolder, fileName)
     FileUtils.copyURLToFile(
         URL(fileUrl),
-        File(filePath)
-    )
+        File(filePath),)
     println("Файл $fileName успешно скачан")
 }
 
