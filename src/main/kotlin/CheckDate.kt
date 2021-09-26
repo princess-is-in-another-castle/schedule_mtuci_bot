@@ -7,10 +7,15 @@ import java.time.DayOfWeek
 /** Возвращает номер текущей недели. Высчитывает, начиная с первого дня учебного дня семестра
  * Сейчас здесь прописано 1 февраля 2021г. */
 fun numberOfWeek(): Int {
+    val year = 2021
+    val monthOfYear = 9
+    val dayOfMonth = 1
+
     val myZone: DateTimeZone = DateTimeZone.forID("Europe/Moscow")
     DateTimeZone.setDefault(myZone)
-    val dateTime1 = DateTime(2021, 2, 1, 0, 0)
+    val dateTime1 = DateTime(year, monthOfYear, dayOfMonth, 0, 0)
     val dateTime2 = DateTime()
+
     return Weeks.weeksBetween(dateTime1, dateTime2).weeks + 1
 }
 
