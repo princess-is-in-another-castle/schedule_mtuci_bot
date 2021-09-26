@@ -22,7 +22,7 @@ class Data() {
     }
 
     object Groups : Table() {
-        val groups = varchar("groups", length = 20)
+        val groups = text("groups")
     }
 
 }
