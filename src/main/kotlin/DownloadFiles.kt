@@ -8,24 +8,31 @@ import java.io.File
 import java.io.FileInputStream
 import java.net.URL
 import java.net.URLEncoder
-import javax.net.ssl.HttpsURLConnection
 
 /** Получает на вход ссылку на сайт и папку для временных файлов
  *  Каждый файл скачивает, потом отправляет на обработку для добавления данных в дб, после обработки файл удаляется. */
 fun putDataInDb(url: String, pathFolder: String) {
     // Список с именами файлов
     val docNames = getDocNames(getHtmlAttributes(url))
+
+
     docNames.forEach { docName ->
-        downloadFile(
-            url = url,
-            fileName = docName,
-            pathFolder = pathFolder
-        )
+        try {
+            downloadFile(
+                url = url,
+                fileName = docName,
+                pathFolder = pathFolder
+            )
+        } catch (e: Exception) {
+            println("Нет возможности скачать файл")
+        }
+
         val folder = File(pathFolder)
         folder.listFiles().forEach { doc ->
             val input = FileInputStream(doc)
             val workbook: Workbook = WorkbookFactory.create(input)
             val sheet = workbook.getSheetAt(0)
+            println("открыл стрим по файлу")
             getGroups(sheet)
         }
         deleteAllFilesInFolder(pathFolder)
@@ -58,11 +65,13 @@ fun getDocNames(listOfElements: Elements): List<String> {
             // если расписание не для ЦЗОПБ, ЦЗОПМ и магистров 11.04.02 (71,75), расписание которых спарсить нормально не получится
                     (it.text().contains("ЦЗОПБ")) or
                     (it.text().contains("ЦЗОПМ")) or
-                    (it.text().contains("СиСС - 11.04.02 (71,75)"))
+                    (it.text().contains("СиСС - 11.04.02 (71,75,76) ")) or
+                            // у магистров в расписании 2 пары, а не 5. а другое количество пар пока парсить не можем
+                    (it.text().contains("СиСС - 11.04.02(71,75) - 2 курс"))
         }?.apply {
             // название файла. Ахтунг!, в названии файла указана вначале папка files/, поэтому удаляем её
             val fileName = this.attr("href").removePrefix("files/")
-            //вывести название файла в консоль
+
             println(fileName)
             namesOfDocs.add(fileName)
         }
