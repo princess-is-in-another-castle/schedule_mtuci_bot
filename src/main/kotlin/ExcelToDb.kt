@@ -23,12 +23,12 @@ fun getTimeTable(sheet: Sheet, group: String) {
     // изначально в findCell() мы получаем координаты ячейки с названием группы. Но чтобы спустится на расписание дней,
     // нам нужно на какое количество ячеек спустися вниз по строкам. Поэтому создан лист из пар, где, соответственно,
     // указан день недели и сколько нужно добавить клеточек, чтобы переместиться на его первую строку.
+
     val weekDays = listOf(
         "MONDAY" to 1, "TUESDAY" to 21,
         "WEDNESDAY" to 41, "THURSDAY" to 61,
         "FRIDAY" to 81, "SATURDAY" to 101
     )
-
     val (row, col) = findCell(sheet, group)
     // бредово написанная проверка на то, есть ли суббота в расписании
     if (hasSaturdayOrNot(sheet, row, col)) {
@@ -40,6 +40,7 @@ fun getTimeTable(sheet: Sheet, group: String) {
             getDay(sheet, row + weekDays[i].second, col, group, weekDays[i].first)
         }
     }
+
 
 }
 
@@ -155,17 +156,36 @@ fun findCell(sheet: Sheet, cellContent: String): Pair<Int, Int> {
     return 0 to 0 // row to column
 }
 
+fun findMatchesCell(sheet: Sheet, regex: Regex): Pair<Int, Int> {
+    for (row in sheet) {
+        for (cell in row) {
+            println(cell.address)
+            // просто перебирает все ячейки, пока не наткнётся на нужную
+            if (cell.toString().matches(regex)) {
+                println("Найденная первая группа в расписании $cell")
+                return cell.rowIndex.toInt() to cell.columnIndex.toInt()
+            }
+        }
+    }
+    return 0 to 0 // row to column
+}
+
+
 /** Получает на вход расписание и строку, столбец ячейки с названием группы!
  *  Можно переписать, чтобы на вход получала название группы, искала её и тд, но мне впадлу, и так работает */
 fun hasSaturdayOrNot(sheet: Sheet, row: Int, col: Int): Boolean {
     // переменная row спускается с ячейки группы на одну вниз, чтобы при переходе по ячейкам влево обязательно
     // наткнулась на понедельник
-    val row = row + 1
-    var col = col
-
+    var row = row + 1
+    val col = col
+    var findCol = col
     do { // выполняется, пока не наткнётся на ячейку с содержанием "Понедельник"
-        col -= 1
-    } while (getMergedCell(sheet, row, col).toString() != "Понедельник")
+        findCol--
+        if (findCol <= 0) {
+            row++
+            findCol = col
+        }
+    } while (getMergedCell(sheet, row, findCol).toString() != "Понедельник")
     // Если спустится на 100 ячеек вниз от первой ячейки понедельника, можно наткнутся на ячейку с содержанием "Суббота"
     // Один день занимает 20 ячеек, поэтому спускаемся на 100 вниз.
     if (getMergedCell(sheet, row + 100, col).toString() == "Суббота") {
@@ -192,10 +212,11 @@ fun isBottomBorderThin(sheet: Sheet, row: Int, col: Int): Boolean {
  *  Дальше она находит первую! ячейку с содержанием "Понедельник" (опытным путём доказано, что если подняться на одну
  *  ячейку вверх от понедельника, то на этой строке будут находиться все названия групп.*/
 fun getGroups(sheet: Sheet) {
-    var (row, col) = findCell(sheet, "Понедельник")
-    row--
+    // находит первую ячейку с группой
+    val (row, col) = findMatchesCell(sheet, """(.*)([А-Я]+\d+)(.*)""".toRegex())
+
     // начинает перебирать все ячейки по строке до конца
-    for (i in col..sheet.getRow(0).lastCellNum) {
+    for (i in col..sheet.getRow(row).lastCellNum) {
         var group = getMergedCell(sheet, row, i).toString()
         // проверяет, есть ли в названии где-либо подряд идущие заглавные буквы, а за ними цифры
         if (group.matches("""(.*)([А-Я]+\d+)(.*)""".toRegex())) {
@@ -206,8 +227,8 @@ fun getGroups(sheet: Sheet) {
             group = group.replace(regex = """^\ +""".toRegex(), "")
             // удаляет все пробелы в конце. Получается "БУП2077"
             group = group.replace(regex = """\ +$""".toRegex(), "")
-
             transaction {
+                addLogger(StdOutSqlLogger)
                 SchemaUtils.create(Groups)
                 Groups.insertIgnore {
                     it[groups] = group
@@ -218,5 +239,7 @@ fun getGroups(sheet: Sheet) {
             getTimeTable(sheet, group)
         }
     }
+
+
 }
 
